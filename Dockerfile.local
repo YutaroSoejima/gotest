@@ -1,0 +1,5 @@
+FROM golang:1.4.1-onbuild
+
+EXPOSE 3000
+
+RUN go get gopkg.in/olivere/elastic.v3
