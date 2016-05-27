@@ -10,21 +10,21 @@ import (
 
 type (
   metaInfo struct {
-    Query string
-    SearchTime float64
-    TotalResults int
-    PageNumber int
+    Query string `json:"query"`
+    SearchTime float64 `json:"searchTime"`
+    Count int `json:"count"`
+    PageNumber int `json:"pageNumber"`
   }
 
   resultItem struct {
-    Title string
-    Url string
-    Content string
+    Title string `json:"title"`
+    URL string `json:"url"`
+    Content string `json:"content"`
   }
 
 	result struct {
-    Meta metaInfo
-    Data []resultItem
+    Meta metaInfo `json:"meta"`
+    Data []resultItem `json:"data"`
 	}
 )
 
@@ -32,7 +32,7 @@ func search(c echo.Context) error {
   meta := metaInfo{ c.QueryParam("q"), 0.34, 12345, 1 }
   data := []resultItem {
     { "残り３日間（土日含む）頑張ろう！", "http://example.com", "hoge hoge foo bar" },
-    { "好きな女優は芦田愛菜", "http://example.com", "(>_< *)" },
+    { "好きな女優は芦田愛菜", "http://example.com", "ロリコンではなく父性本能" },
   }
 
 	return c.JSON(http.StatusOK, result{ meta, data })
