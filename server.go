@@ -35,6 +35,9 @@ func search(c echo.Context) error {
     { "好きな女優は芦田愛菜", "http://example.com", "ロリコンではなく父性本能" },
   }
 
+  c.Response().Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+  c.Response().Header().Set("Access-Control-Allow-Origin", "*")
+
 	return c.JSON(http.StatusOK, result{ meta, data })
 }
 
