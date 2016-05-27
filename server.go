@@ -9,14 +9,33 @@ import (
 )
 
 type (
+  metaInfo struct {
+    Query string
+    SearchTime float64
+    TotalResults int
+    PageNumber int
+  }
+
+  resultItem struct {
+    Title string
+    Url string
+    Content string
+  }
+
 	result struct {
-		Query string
+    Meta metaInfo
+    Data []resultItem
 	}
 )
 
 func search(c echo.Context) error {
-	q := c.QueryParam("q")
-	return c.JSON(http.StatusOK, result{ Query: q })
+  meta := metaInfo{ c.QueryParam("q"), 0.34, 12345, 1 }
+  data := []resultItem {
+    { "残り３日間（土日含む）頑張ろう！", "http://example.com", "hoge hoge foo bar" },
+    { "好きな女優は芦田愛菜", "http://example.com", "(>_< *)" },
+  }
+
+	return c.JSON(http.StatusOK, result{ meta, data })
 }
 
 func main() {
