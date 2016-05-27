@@ -2,13 +2,17 @@ package main
 
 import (
 	"net/http"
+  "reflect"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"
+
+  "gopkg.in/olivere/elastic.v3"
 )
 
 type (
+  // For responce
   metaInfo struct {
     Query string `json:"query"`
     SearchTime float64 `json:"searchTime"`
@@ -26,13 +30,27 @@ type (
     Meta metaInfo `json:"meta"`
     Data []resultItem `json:"data"`
 	}
+
+  // For Serialization
+  esItem struct {
+    URL string `json:"url"`
+    WholeText string
+    PageRank float64
+  }
 )
 
 func search(c echo.Context) error {
   meta := metaInfo{ c.QueryParam("q"), 0.34, 12345, 1 }
-  data := []resultItem {
-    { "残り３日間（土日含む）頑張ろう！", "http://example.com", "hoge hoge foo bar" },
-    { "好きな女優は芦田愛菜", "http://example.com", "ロリコンではなく父性本能" },
+  var data []resultItem
+  client, _ := elastic.NewClient(elastic.SetSniff(false), elastic.SetURL("http://52.68.230.203:9200/"))
+  query := elastic.NewMatchQuery("wholeText", c.QueryParam("q"))
+  searchResult, _ := client.Search().Index("google").Query(query).Do()
+
+  var ttyp esItem
+  for _, item := range searchResult.Each(reflect.TypeOf(ttyp)) {
+    if i, ok := item.(esItem); ok {
+      data = append(data, resultItem{ "titleはまだない", i.URL, i.WholeText })
+    }
   }
 
   c.Response().Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
