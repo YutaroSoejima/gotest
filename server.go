@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"reflect"
+	"unicode/utf8"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/standard"
@@ -49,7 +50,11 @@ func search(c echo.Context) error {
 	var ttyp esItem
 	for _, item := range searchResult.Each(reflect.TypeOf(ttyp)) {
 		if i, ok := item.(esItem); ok {
-			data = append(data, resultItem{"titleはまだない", i.URL, i.WholeText})
+			text := ""
+			if text_len := utf8.RuneCountInString(i.WholeText); text_len > 140 {
+				text = string([]rune(i.WholeText)[:140]) + "..."
+			}
+			data = append(data, resultItem{"titleはまだない", i.URL, text})
 		}
 	}
 
