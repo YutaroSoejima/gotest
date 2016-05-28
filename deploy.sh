@@ -1,5 +1,5 @@
 ./build.sh
-git add .
-git commit --amend -m ""
+git add -A .
+git commit -m "hoge"
 eb deploy
 eb status
