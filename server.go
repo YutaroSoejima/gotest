@@ -41,10 +41,10 @@ type (
 )
 
 func search(c echo.Context) error {
-	meta := metaInfo{c.QueryParam("q"), 0.34, 12345, 10, 1}
+	meta := metaInfo{c.QueryParam("query"), 0.34, 12345, 10, 1}
 	var data []resultItem
 	client, _ := elastic.NewClient(elastic.SetSniff(false), elastic.SetURL("http://52.68.230.203:9200/"))
-	query := elastic.NewMatchQuery("wholeText", c.QueryParam("q"))
+	query := elastic.NewMatchQuery("wholeText", c.QueryParam("query"))
 	searchResult, _ := client.Search().Index("google").Query(query).Do()
 
 	var ttyp esItem
