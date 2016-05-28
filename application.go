@@ -8,7 +8,7 @@ import (
 	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"
 
-  "github.com/olivere/elastic"
+  "gopkg.in/olivere/elastic.v3"
 )
 
 type (
