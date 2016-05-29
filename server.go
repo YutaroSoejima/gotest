@@ -99,7 +99,7 @@ func search(c echo.Context) error {
 	for _, item := range searchResult.Each(reflect.TypeOf(ttyp)) {
 		if i, ok := item.(esItem); ok {
 			title := i.EntryTitle + " | " + i.BlogTitle + "-" + "アメーバブログ"
-			uri := "ameblo.jp/" + i.AmebaId + "/" + "entry-" + strconv.FormatInt(i.EntryId, 10) + ".html"
+			uri := "http://" + "ameblo.jp/" + i.AmebaId + "/" + "entry-" + strconv.FormatInt(i.EntryId, 10) + ".html"
 			text := ""
 			if text_len := utf8.RuneCountInString(i.EntryContent); text_len > 140 {
 				text = string([]rune(i.EntryContent)[:140]) + "..."
