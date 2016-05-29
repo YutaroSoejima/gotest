@@ -47,6 +47,10 @@ type (
 		EntryTitle      string  `json:"entryTitle"`
 		EntryContent    string  `json:"entryContent"`
 		NumberOfLetters string  `json:"numberOfLetters"`
+		Url             string  `json:"url"`
+		Topic           string  `json:"topic"`
+		PageRank        float64 `json:"pageRank"`
+		WholeText       string  `json:"wholeText"`
 	}
 
 	// .../prod/classify?word={QueryParameter.Word}
@@ -104,20 +108,30 @@ func search(c echo.Context) error {
 	var data []resultItem
 	client, _ := elastic.NewClient(elastic.SetSniff(false), elastic.SetURL("http://52.68.230.203:9200/"))
 	query := elastic.NewMatchQuery("_all", queryParam)
-	searchResult, _ := client.Search().Index("google").Type("ameblo").Query(query).Do()
+	//searchResult, _ := client.Search().Index("google").Type("ameblo").Query(query).Do()
+	//searchResult, _ := client.Search().Index("google").Type("general").Query(query).Do()
+	searchResult, _ := client.Search().Index("google").Type("ameblo", "general").Query(query).Size(100).Do()
 
 	// [Not Yet] compairing scores
 	fmt.Println(*searchResult.Hits.Hits[0].Score)
 
-	meta := metaInfo{queryParam, 0.34, searchResult.TotalHits(), 10, 1}
+	meta := metaInfo{queryParam, 0.34, searchResult.TotalHits(), 100, 1}
 
 	var ttyp esItem
 	for _, item := range searchResult.Each(reflect.TypeOf(ttyp)) {
 		if i, ok := item.(esItem); ok {
-			title := i.EntryTitle + " | " + i.BlogTitle + "-" + "アメーバブログ"
-			uri := "http://" + "ameblo.jp/" + i.AmebaId + "/" + "entry-" + strconv.FormatInt(i.EntryId, 10) + ".html"
-			text := i.EntryContent
-			text = removeTags(text)
+			title := ""
+			uri := ""
+			text := ""
+			if i.Url != "" {
+				title = string([]rune(i.WholeText)[:30]) + "..."
+				uri = i.Url
+				text = i.WholeText
+			} else {
+				title = i.EntryTitle + " | " + i.BlogTitle + "-" + "アメーバブログ"
+				uri = "http://" + "ameblo.jp/" + i.AmebaId + "/" + "entry-" + strconv.FormatInt(i.EntryId, 10) + ".html"
+				text = removeTags(i.EntryContent)
+			}
 			if text_len := utf8.RuneCountInString(text); text_len > 140 {
 				text = string([]rune(text)[:140]) + "..."
 			} else {
