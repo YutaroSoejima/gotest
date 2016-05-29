@@ -103,6 +103,8 @@ func search(c echo.Context) error {
 			text := ""
 			if text_len := utf8.RuneCountInString(i.EntryContent); text_len > 140 {
 				text = string([]rune(i.EntryContent)[:140]) + "..."
+			} else {
+				text = string([]rune(i.EntryContent)) + "..."
 			}
 			data = append(data, resultItem{title, uri, text})
 		}
