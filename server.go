@@ -115,7 +115,7 @@ func search(c echo.Context) error {
 	// [Not Yet] compairing scores
 	fmt.Println(*searchResult.Hits.Hits[0].Score)
 
-	meta := metaInfo{queryParam, 0.34, searchResult.TotalHits(), 100, 1}
+	meta := metaInfo{queryParam, float64(searchResult.TookInMillis) / 1000, searchResult.TotalHits(), 100, 1}
 
 	var ttyp esItem
 	for _, item := range searchResult.Each(reflect.TypeOf(ttyp)) {
