@@ -18,11 +18,11 @@ import (
 type (
 	// For responce
 	metaInfo struct {
-		Query      string  `json:"query"`
-		SearchTime float64 `json:"searchTime"`
-		Count      int     `json:"count"`
-		CountPerPage      int     `json:"countPerPage"`
-		PageNumber int     `json:"pageNumber"`
+		Query        string  `json:"query"`
+		SearchTime   float64 `json:"searchTime"`
+		Count        int     `json:"count"`
+		CountPerPage int     `json:"countPerPage"`
+		PageNumber   int     `json:"pageNumber"`
 	}
 
 	resultItem struct {
@@ -57,26 +57,30 @@ func getTopics(query string) map[string]string {
 		QueryString: word,
 	}.Do()
 
-	body, _ := response.Body.ToString()
-	body = strings.Trim(body, "{}")
-	topics := strings.Split(body, ",")
-	query_topics := make(map[string]string)
-	for _, topic := range topics {
-		elm := strings.Split(topic, ":")
-		elm[0] = strings.Trim(elm[0], " ")
-		query_topics[elm[0]] = elm[1]
+	if len(response.Uri) > 0 {
+		body, _ := response.Body.ToString()
+		body = strings.Trim(body, "{}")
+		topics := strings.Split(body, ",")
+		query_topics := make(map[string]string)
+		for _, topic := range topics {
+			elm := strings.Split(topic, ":")
+			elm[0] = strings.Trim(elm[0], " ")
+			query_topics[elm[0]] = elm[1]
+		}
+		// {topic: probability, topic: probability, ...}
+		return query_topics
 	}
 
-	return query_topics
+	return nil
 }
 
 func search(c echo.Context) error {
 	queryParam := c.QueryParam("query")
-	queryTopics := getTopics(query_param)
-	fmt.Println(query_topics)
+	queryTopics := getTopics(queryParam)
+	fmt.Println(reflect.TypeOf(queryTopics))
 	// [REMIND] when requesting to elastic, also use query_topics
 
-	meta := metaInfo{queryParam, 0.34, 12345, 1}
+	meta := metaInfo{queryParam, 0.34, 12345, 10, 1}
 
 	var data []resultItem
 	client, _ := elastic.NewClient(elastic.SetSniff(false), elastic.SetURL("http://52.68.230.203:9200/"))
