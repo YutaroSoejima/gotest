@@ -84,7 +84,7 @@ func search(c echo.Context) error {
 
 	var data []resultItem
 	client, _ := elastic.NewClient(elastic.SetSniff(false), elastic.SetURL("http://52.68.230.203:9200/"))
-	query := elastic.NewMatchQuery("wholeText", queryParam)
+	query := elastic.NewMatchQuery("_all", queryParam)
 	searchResult, _ := client.Search().Index("google").Query(query).Do()
 
 	var ttyp esItem
