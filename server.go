@@ -98,6 +98,27 @@ func removeTags(str string) string {
 	return str
 }
 
+func member(x resultItem, ys []resultItem) bool {
+	for _, y := range ys {
+		if x.URL == y.URL {
+			return true
+		}
+	}
+
+	return false
+}
+
+func removeDuplication(items []resultItem) []resultItem {
+	res := make([]resultItem, 0, len(items))
+	for _, item := range items {
+		if !member(item, res) {
+			res = append(res, item)
+		}
+	}
+
+	return res
+}
+
 func search(c echo.Context) error {
 	queryParam := replaceBlank(c.QueryParam("query"))
 	fmt.Println("queryParam: " + queryParam)
@@ -110,12 +131,12 @@ func search(c echo.Context) error {
 	query := elastic.NewMatchQuery("_all", queryParam)
 	//searchResult, _ := client.Search().Index("google").Type("ameblo").Query(query).Do()
 	//searchResult, _ := client.Search().Index("google").Type("general").Query(query).Do()
-	searchResult, _ := client.Search().Index("google").Type("ameblo", "general").Query(query).Size(100).Do()
+	searchResult, _ := client.Search().Index("google").Type("ameblo", "general").Query(query).Size(50).Do()
 
 	// [Not Yet] compairing scores
 	fmt.Println(*searchResult.Hits.Hits[0].Score)
 
-	meta := metaInfo{queryParam, float64(searchResult.TookInMillis) / 1000, searchResult.TotalHits(), 100, 1}
+	meta := metaInfo{queryParam, float64(searchResult.TookInMillis) / 1000, searchResult.TotalHits(), 10, 1}
 
 	var ttyp esItem
 	for _, item := range searchResult.Each(reflect.TypeOf(ttyp)) {
@@ -140,6 +161,8 @@ func search(c echo.Context) error {
 			data = append(data, resultItem{title, uri, text})
 		}
 	}
+
+	data = removeDuplication(data)
 
 	c.Response().Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 	c.Response().Header().Set("Access-Control-Allow-Origin", "*")
