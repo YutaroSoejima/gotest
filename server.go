@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -79,6 +80,16 @@ func getTopics(query string) map[string]string {
 	return nil
 }
 
+func removeTags(str string) string {
+	rep1 := regexp.MustCompile(`<.+?>`)
+	str = rep1.ReplaceAllString(str, "")
+
+	rep2 := regexp.MustCompile(`<.+?/>`)
+	str = rep2.ReplaceAllString(str, "")
+
+	return str
+}
+
 func search(c echo.Context) error {
 	queryParam := c.QueryParam("query")
 	queryTopics := getTopics(queryParam)
@@ -100,11 +111,12 @@ func search(c echo.Context) error {
 		if i, ok := item.(esItem); ok {
 			title := i.EntryTitle + " | " + i.BlogTitle + "-" + "アメーバブログ"
 			uri := "http://" + "ameblo.jp/" + i.AmebaId + "/" + "entry-" + strconv.FormatInt(i.EntryId, 10) + ".html"
-			text := ""
-			if text_len := utf8.RuneCountInString(i.EntryContent); text_len > 140 {
-				text = string([]rune(i.EntryContent)[:140]) + "..."
+			text := i.EntryContent
+			text = removeTags(text)
+			if text_len := utf8.RuneCountInString(text); text_len > 140 {
+				text = string([]rune(text)[:140]) + "..."
 			} else {
-				text = string([]rune(i.EntryContent)) + "..."
+				text = string([]rune(text)) + "..."
 			}
 			data = append(data, resultItem{title, uri, text})
 		}
