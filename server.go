@@ -47,6 +47,10 @@ type (
 		EntryTitle      string  `json:"entryTitle"`
 		EntryContent    string  `json:"entryContent"`
 		NumberOfLetters string  `json:"numberOfLetters"`
+		Url             string  `json:"url"`
+		Topic           string  `json:"topic"`
+		PageRank        float64 `json:"pageRank"`
+		WholeText       string  `json:"wholeText"`
 	}
 
 	// .../prod/classify?word={QueryParameter.Word}
@@ -54,6 +58,10 @@ type (
 		Word string
 	}
 )
+
+func replaceBlank(str string) string {
+	return strings.Replace(str, "　", " ", -1)
+}
 
 // return topics for query(::query_topics)
 func getTopics(query string) map[string]string {
@@ -90,8 +98,30 @@ func removeTags(str string) string {
 	return str
 }
 
+func member(x resultItem, ys []resultItem) bool {
+	for _, y := range ys {
+		if x.URL == y.URL {
+			return true
+		}
+	}
+
+	return false
+}
+
+func removeDuplication(items []resultItem) []resultItem {
+	res := make([]resultItem, 0, len(items))
+	for _, item := range items {
+		if !member(item, res) {
+			res = append(res, item)
+		}
+	}
+
+	return res
+}
+
 func search(c echo.Context) error {
-	queryParam := c.QueryParam("query")
+	queryParam := replaceBlank(c.QueryParam("query"))
+	fmt.Println("queryParam: " + queryParam)
 	queryTopics := getTopics(queryParam)
 	fmt.Println(queryTopics)
 	// [Not Yet] when requesting to elastic, also use query_topics
@@ -99,20 +129,30 @@ func search(c echo.Context) error {
 	var data []resultItem
 	client, _ := elastic.NewClient(elastic.SetSniff(false), elastic.SetURL("http://52.68.230.203:9200/"))
 	query := elastic.NewMatchQuery("_all", queryParam)
-	searchResult, _ := client.Search().Index("google").Type("ameblo").Query(query).Do()
+	//searchResult, _ := client.Search().Index("google").Type("ameblo").Query(query).Do()
+	//searchResult, _ := client.Search().Index("google").Type("general").Query(query).Do()
+	searchResult, _ := client.Search().Index("google").Type("ameblo", "general").Query(query).Size(50).Do()
 
 	// [Not Yet] compairing scores
 	fmt.Println(*searchResult.Hits.Hits[0].Score)
 
-	meta := metaInfo{queryParam, 0.34, searchResult.TotalHits(), 10, 1}
+	meta := metaInfo{queryParam, float64(searchResult.TookInMillis) / 1000, searchResult.TotalHits(), 10, 1}
 
 	var ttyp esItem
 	for _, item := range searchResult.Each(reflect.TypeOf(ttyp)) {
 		if i, ok := item.(esItem); ok {
-			title := i.EntryTitle + " | " + i.BlogTitle + "-" + "アメーバブログ"
-			uri := "http://" + "ameblo.jp/" + i.AmebaId + "/" + "entry-" + strconv.FormatInt(i.EntryId, 10) + ".html"
-			text := i.EntryContent
-			text = removeTags(text)
+			title := ""
+			uri := ""
+			text := ""
+			if i.Url != "" {
+				title = string([]rune(i.WholeText)[:30]) + "..."
+				uri = i.Url
+				text = i.WholeText
+			} else {
+				title = i.EntryTitle + " | " + i.BlogTitle + "-" + "アメーバブログ"
+				uri = "http://" + "ameblo.jp/" + i.AmebaId + "/" + "entry-" + strconv.FormatInt(i.EntryId, 10) + ".html"
+				text = removeTags(i.EntryContent)
+			}
 			if text_len := utf8.RuneCountInString(text); text_len > 140 {
 				text = string([]rune(text)[:140]) + "..."
 			} else {
@@ -121,6 +161,8 @@ func search(c echo.Context) error {
 			data = append(data, resultItem{title, uri, text})
 		}
 	}
+
+	data = removeDuplication(data)
 
 	c.Response().Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 	c.Response().Header().Set("Access-Control-Allow-Origin", "*")
