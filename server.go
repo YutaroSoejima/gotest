@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -20,7 +21,7 @@ type (
 	metaInfo struct {
 		Query        string  `json:"query"`
 		SearchTime   float64 `json:"searchTime"`
-		Count        int     `json:"count"`
+		Count        int64   `json:"count"`
 		CountPerPage int     `json:"countPerPage"`
 		PageNumber   int     `json:"pageNumber"`
 	}
@@ -38,9 +39,13 @@ type (
 
 	// For Serialization
 	esItem struct {
-		URL       string `json:"url"`
-		WholeText string
-		PageRank  float64
+		Score           float64 `json:"_score"`
+		EntryId         int64   `json:"entryId"`
+		AmebaId         string  `json:"amebaId"`
+		BlogTitle       string  `json:"blogTitle"`
+		EntryTitle      string  `json:"entryTitle"`
+		EntryContent    string  `json:"entryContent"`
+		NumberOfLetters string  `json:"numberOfLetters"`
 	}
 
 	// .../prod/classify?word={QueryParameter.Word}
@@ -77,24 +82,29 @@ func getTopics(query string) map[string]string {
 func search(c echo.Context) error {
 	queryParam := c.QueryParam("query")
 	queryTopics := getTopics(queryParam)
-	fmt.Println(reflect.TypeOf(queryTopics))
-	// [REMIND] when requesting to elastic, also use query_topics
-
-	meta := metaInfo{queryParam, 0.34, 12345, 10, 1}
+	fmt.Println(queryTopics)
+	// [Not Yet] when requesting to elastic, also use query_topics
 
 	var data []resultItem
 	client, _ := elastic.NewClient(elastic.SetSniff(false), elastic.SetURL("http://52.68.230.203:9200/"))
 	query := elastic.NewMatchQuery("_all", queryParam)
-	searchResult, _ := client.Search().Index("google").Query(query).Do()
+	searchResult, _ := client.Search().Index("google").Type("ameblo").Query(query).Do()
+
+	// [Not Yet] compairing scores
+	fmt.Println(*searchResult.Hits.Hits[0].Score)
+
+	meta := metaInfo{queryParam, 0.34, searchResult.TotalHits(), 10, 1}
 
 	var ttyp esItem
 	for _, item := range searchResult.Each(reflect.TypeOf(ttyp)) {
 		if i, ok := item.(esItem); ok {
+			title := i.EntryTitle + " | " + i.BlogTitle + "-" + "アメーバブログ"
+			uri := "ameblo.jp/" + i.AmebaId + "/" + "entry-" + strconv.FormatInt(i.EntryId, 10) + ".html"
 			text := ""
-			if text_len := utf8.RuneCountInString(i.WholeText); text_len > 140 {
-				text = string([]rune(i.WholeText)[:140]) + "..."
+			if text_len := utf8.RuneCountInString(i.EntryContent); text_len > 140 {
+				text = string([]rune(i.EntryContent)[:140]) + "..."
 			}
-			data = append(data, resultItem{"titleはまだない", i.URL, text})
+			data = append(data, resultItem{title, uri, text})
 		}
 	}
 
