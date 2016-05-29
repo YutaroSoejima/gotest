@@ -55,6 +55,10 @@ type (
 	}
 )
 
+func replaceBlank(str string) string {
+	return strings.Replace(str, "　", " ", -1)
+}
+
 // return topics for query(::query_topics)
 func getTopics(query string) map[string]string {
 	word := QueryParameter{Word: query}
@@ -91,7 +95,8 @@ func removeTags(str string) string {
 }
 
 func search(c echo.Context) error {
-	queryParam := c.QueryParam("query")
+	queryParam := replaceBlank(c.QueryParam("query"))
+	fmt.Println("queryParam: " + queryParam)
 	queryTopics := getTopics(queryParam)
 	fmt.Println(queryTopics)
 	// [Not Yet] when requesting to elastic, also use query_topics
