@@ -111,8 +111,7 @@ func search(c echo.Context) error {
 	}
 
 	c.Response().Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-	c.Response().Header().Set("Access-Control-Allow-Origin", "http://caggl.de")
-	c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
+	c.Response().Header().Set("Access-Control-Allow-Origin", "*")
 
 	return c.JSON(http.StatusOK, result{meta, data})
 }
