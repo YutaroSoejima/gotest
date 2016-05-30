@@ -154,6 +154,7 @@ func search(c echo.Context) error {
 
 	query := elastic.NewBoolQuery()
 	query = query.Must(elastic.NewMatchQuery("_all", queryParam))
+	qt = strings.Trim(qt, "\"")
 	fmt.Println("topic: " + qt)
 	query = query.Should(elastic.NewTermQuery("topic", qt))
 	searchResult, _ := client.Search().Index("google").Type("ameblo", "general").Query(query).Size(50).Do()
