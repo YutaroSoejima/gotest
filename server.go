@@ -71,13 +71,19 @@ func getTopics(query string) map[string]string {
 		QueryString: word,
 	}.Do()
 
-	if len(response.Uri) > 0 {
-		body, _ := response.Body.ToString()
+	body, _ := response.Body.ToString()
+	fmt.Println(body)
+	fmt.Println(len(body))
+
+	if len(body) > 2 {
 		body = strings.Trim(body, "{}")
+		fmt.Println(body)
 		topics := strings.Split(body, ",")
 		query_topics := make(map[string]string)
 		for _, topic := range topics {
 			elm := strings.Split(topic, ":")
+			fmt.Println(reflect.TypeOf(elm[0]))
+			fmt.Println(reflect.TypeOf(elm[1]))
 			elm[0] = strings.Trim(elm[0], " ")
 			query_topics[elm[0]] = elm[1]
 		}
@@ -87,6 +93,10 @@ func getTopics(query string) map[string]string {
 
 	return nil
 }
+
+//func reScore(topics map[string]string, items []resultItem) []resultItem {
+//
+//}
 
 func removeTags(str string) string {
 	rep1 := regexp.MustCompile(`<.+?>`)
@@ -121,20 +131,35 @@ func removeDuplication(items []resultItem) []resultItem {
 
 func search(c echo.Context) error {
 	queryParam := replaceBlank(c.QueryParam("query"))
-	fmt.Println("queryParam: " + queryParam)
 	queryTopics := getTopics(queryParam)
-	fmt.Println(queryTopics)
+	topics := make([]string, 0, len(queryTopics))
+	for topic, _ := range queryTopics {
+		topics = append(topics, topic)
+	}
+	qt := ""
+	fmt.Println(topics)
+	fmt.Println(len(topics))
+	if len(topics) > 0 {
+		qt = topics[0]
+		fmt.Println(qt)
+	}
 	// [Not Yet] when requesting to elastic, also use query_topics
 
 	var data []resultItem
 	client, _ := elastic.NewClient(elastic.SetSniff(false), elastic.SetURL("http://52.68.230.203:9200/"))
-	query := elastic.NewMatchQuery("_all", queryParam)
-	//searchResult, _ := client.Search().Index("google").Type("ameblo").Query(query).Do()
-	//searchResult, _ := client.Search().Index("google").Type("general").Query(query).Do()
+	//query := elastic.NewMatchQuery("_all", queryParam)
+	//searchResult, _ := client.Search().Index("google").Type("ameblo").Query(query).Size(50).Do()
+	//searchResult, _ := client.Search().Index("google").Type("general").Query(query).Sort("pageRank", false).Size(50).Do()
+	//searchResult, _ := client.Search().Index("google").Type("ameblo", "general").Query(query).Size(50).Do()
+
+	query := elastic.NewBoolQuery()
+	query = query.Must(elastic.NewMatchQuery("_all", queryParam))
+	fmt.Println("topic: " + qt)
+	query = query.Should(elastic.NewTermQuery("topic", qt))
 	searchResult, _ := client.Search().Index("google").Type("ameblo", "general").Query(query).Size(50).Do()
 
 	// [Not Yet] compairing scores
-	fmt.Println(*searchResult.Hits.Hits[0].Score)
+	//fmt.Println(*searchResult.Hits.Hits[0].Score)
 
 	meta := metaInfo{queryParam, float64(searchResult.TookInMillis) / 1000, searchResult.TotalHits(), 10, 1}
 
